@@ -1,44 +1,63 @@
-import { ethers } from "ethers";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import MetamaskButton from "./components/MetamaskButton";
+import { Contract } from "ethers";
+import abi from "./abi.json";
 
 const App = () => {
   const [signer, setSigner] = useState();
+  const [contractAddress, setContractAddress] = useState("");
+  const [contract, setContract] = useState();
 
-  const onClickMetamask = async () => {
+  const onClickContract = () => {
+    if (!signer || !contractAddress) return;
+
+    setContract(new Contract(contractAddress, abi, signer));
+  };
+
+  const getNameSymbol = async () => {
     try {
-      if (!window.ethereum) return;
+      const nameResponse = await contract.name();
+      const symbolResponse = await contract.symbol();
 
-      const provider = new ethers.BrowserProvider(window.ethereum);
-
-      setSigner(await provider.getSigner());
+      console.log(nameResponse, symbolResponse);
     } catch (error) {
       console.error(error);
     }
   };
 
-  const onClickLogOut = () => {
-    setSigner(null);
-  };
+  useEffect(() => {
+    if (!contract) return;
+
+    getNameSymbol();
+  }, [contract]);
 
   return (
-    <div className="bg-red-100 min-h-screen flex justify-center items-center">
-      {signer ? (
-        <div className="flex gap-8">
-          <div className="box-style">
-            안녕하세요, {signer.address.substring(0, 7)}...
-            {signer.address.substring(signer.address.length - 5)}님
+    <div className="min-h-screen flex flex-col justify-start items-center py-16">
+      <MetamaskButton signer={signer} setSigner={setSigner} />
+      {signer && (
+        <div className="mt-16 flex flex-col gap-8 grow max-w-xl w-full">
+          <div className="box-style text-center">
+            0x77D2DAC005A952eF61AbC3D5b460bF60c805E790
           </div>
-          <button
-            className="button-style border-red-300 hover:border-red-400"
-            onClick={onClickLogOut}
-          >
-            로그아웃
-          </button>
+          <div className="flex w-full items-start">
+            <div className="flex flex-col gap-2 grow">
+              <div className="ml-1 text-lg font-bold">ERC20 연결</div>
+              <input
+                className="input-style"
+                type="text"
+                placeholder="컨트랙트 주소"
+                value={contractAddress}
+                onChange={(e) => setContractAddress(e.target.value)}
+              />
+            </div>
+            <button
+              className="button-style ml-4 mt-9"
+              onClick={onClickContract}
+            >
+              연결
+            </button>
+          </div>
         </div>
-      ) : (
-        <button className="button-style" onClick={onClickMetamask}>
-          🦊 메타마스크 로그인
-        </button>
       )}
     </div>
   );
